@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: myproject
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  
+  server:
+    image: server
+    build:
+      context: .
+      dockerfile: MyProject.WebApi/Dockerfile
+    ports:
+      - "8001:443"
+      - "8000:80"
+    environment:
+      ASPNETCORE_HTTPS_PORTS: "8001"
+      ASPNETCORE_URLS: "http://+;https://+"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${KESTREL_CERTIFICATES_DEFAULT_PASSWORD}
+      ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/myproject.pfx"
+      DB_CONNECTION: ${DB_CONNECTION}
+      JWT_KEY: ${JWT_KEY}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+    volumes:
+      - aspnet_https:/https/
+      - ./logs:/app/logs
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
+  aspnet_https:
