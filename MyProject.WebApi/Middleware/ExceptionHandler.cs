@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.IdentityModel.Tokens;
 using MyProject.Application.Payloads;
 
 namespace MyProject.WebApi.Middleware;
@@ -48,6 +49,7 @@ public class ExceptionHandler : IExceptionHandler
             ArgumentNullException ex => (400, ex.Message),
             ValidationException ex => (400, ex.Message),
             UnauthorizedAccessException ex => (401, ex.Message),
+            SecurityTokenExpiredException => (401, "Token has expired."),
             _ => (500, exception.Message)
         };
     }

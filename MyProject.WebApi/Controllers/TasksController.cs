@@ -8,7 +8,7 @@ namespace MyProject.WebApi.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class TasksController : ControllerBase
+public sealed class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
 
@@ -30,10 +30,15 @@ public class TasksController : ControllerBase
     
     [HttpGet]
     [CustomAuthorize]
-    public async Task<IActionResult> GetTasks([FromQuery] PaginationParams paginationParams)
+    public async Task<IActionResult> GetTasks(
+        [FromQuery] PaginationParams paginationParams,
+        [FromQuery] string? status,
+        [FromQuery] DateTime? dueDate,
+        [FromQuery] string? priority)
     {
         var user = HttpContext.Items["User"] as User;
-        var result = await _taskService.GetTasksAsync(user!.Id, paginationParams.PageNumber, paginationParams.PageSize);
+        var result = await _taskService.GetTasksAsync(
+            user!.Id, paginationParams.PageNumber, paginationParams.PageSize, dueDate, status, priority);
 
         return StatusCode(result.Code, result);
     }
