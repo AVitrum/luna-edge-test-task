@@ -8,15 +8,27 @@ using MyProject.Infrastructure.Settings;
 
 namespace MyProject.Infrastructure.Security;
 
+/// <summary>
+/// Provides functionality for generating JWT tokens for authenticated users.
+/// </summary>
 public sealed class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtSettings _jwtSettings;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JwtTokenGenerator"/> class.
+    /// </summary>
+    /// <param name="jwtSettings">Injected JWT settings from configuration.</param>
     public JwtTokenGenerator(IOptions<JwtSettings> jwtSettings)
     {
         _jwtSettings = jwtSettings.Value;
     }
 
+    /// <summary>
+    /// Generates a JWT token for the specified user.
+    /// </summary>
+    /// <param name="user">The user for whom to generate the token.</param>
+    /// <returns>A JWT token string containing user claims.</returns>
     public string GenerateToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();

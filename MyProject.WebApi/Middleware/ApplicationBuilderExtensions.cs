@@ -4,8 +4,17 @@ using MyProject.Infrastructure.Persistence;
 
 namespace MyProject.WebApi.Middleware;
 
+/// <summary>
+/// Provides extension methods for configuring the application's request pipeline, endpoints, and database migration.
+/// </summary>
 public static class ApplicationBuilderExtensions
 {
+    /// <summary>
+    /// Applies any pending database migrations at application startup.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="Exception">Throws if migration fails.</exception>
     public static async Task MigrateDatabaseAsync(this IApplicationBuilder app)
     {
         using var scope = app.ApplicationServices.CreateScope();
@@ -26,6 +35,10 @@ public static class ApplicationBuilderExtensions
         }
     }
     
+    /// <summary>
+    /// Configures the middleware pipeline for the web application, including Swagger, exception handling, HTTPS redirection, and routing.
+    /// </summary>
+    /// <param name="app">The web application.</param>
     public static void ConfigurePipeline(this WebApplication app)
     {
         app.UseSwagger();
@@ -35,6 +48,10 @@ public static class ApplicationBuilderExtensions
         app.UseRouting();
     }
     
+    /// <summary>
+    /// Maps application endpoints and configures JWT authentication and error handling.
+    /// </summary>
+    /// <param name="app">The web application.</param>
     public static void MapApplicationEndpoints(this WebApplication app)
     {
         app.UseMiddleware<JwtMiddleware>();

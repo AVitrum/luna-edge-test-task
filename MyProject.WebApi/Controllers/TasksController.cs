@@ -6,8 +6,13 @@ using MyProject.WebApi.Attributes;
 
 namespace MyProject.WebApi.Controllers;
 
+/// <summary>
+/// Controller for managing user tasks. Provides endpoints for creating, retrieving, updating, and deleting tasks.
+/// All endpoints require authentication.
+/// </summary>
 [ApiController]
 [Route("[controller]")]
+[CustomAuthorize]
 public sealed class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
@@ -17,8 +22,16 @@ public sealed class TasksController : ControllerBase
         _taskService = taskService;
     }
 
+    /// <summary>
+    /// Creates a new task for the authenticated user.
+    /// </summary>
+    /// <param name="request">The task creation request payload.</param>
+    /// <returns>Result of the task creation operation.</returns>
+    /// <remarks>
+    /// Route: POST /tasks
+    /// Authentication: Required
+    /// </remarks>
     [HttpPost]
-    [CustomAuthorize]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskRequest request)
     {
         var user = HttpContext.Items["User"] as User;
@@ -28,8 +41,25 @@ public sealed class TasksController : ControllerBase
         return StatusCode(result.Code, result);
     }
     
+    /// <summary>
+    /// Retrieves a paginated list of tasks for the authenticated user.
+    /// </summary>
+    /// <param name="paginationParams">Pagination parameters.</param>
+    /// <param name="status">Optional status filter. Accepts: Pending, InProgress, Completed.</param>
+    /// <param name="dueDate">Optional due date filter. Format: yyyy-MM-dd or ISO 8601 (e.g. 2025-09-06 or 2025-09-06T00:00:00Z).</param>
+    /// <param name="priority">Optional priority filter. Accepts: Low, Medium, High.</param>
+    /// <returns>Paginated list of tasks.</returns>
+    /// <remarks>
+    /// Route: GET /tasks
+    /// Authentication: Required
+    /// <br/>
+    /// <b>Status values:</b> Pending, InProgress, Completed
+    /// <br/>
+    /// <b>Priority values:</b> Low, Medium, High
+    /// <br/>
+    /// <b>Date format:</b> yyyy-MM-dd or ISO 8601 (e.g. 2025-09-06 or 2025-09-06T00:00:00Z)
+    /// </remarks>
     [HttpGet]
-    [CustomAuthorize]
     public async Task<IActionResult> GetTasks(
         [FromQuery] PaginationParams paginationParams,
         [FromQuery] string? status,
@@ -43,8 +73,16 @@ public sealed class TasksController : ControllerBase
         return StatusCode(result.Code, result);
     }
 
+    /// <summary>
+    /// Retrieves a specific task by its ID for the authenticated user.
+    /// </summary>
+    /// <param name="id">The unique identifier of the task.</param>
+    /// <returns>Details of the requested task.</returns>
+    /// <remarks>
+    /// Route: GET /tasks/{id}
+    /// Authentication: Required
+    /// </remarks>
     [HttpGet("{id:guid}")]
-    [CustomAuthorize]
     public async Task<IActionResult> GetTaskById(Guid id)
     {
         var user = HttpContext.Items["User"] as User;
@@ -53,8 +91,17 @@ public sealed class TasksController : ControllerBase
         return StatusCode(result.Code, result);
     }
     
+    /// <summary>
+    /// Updates a specific task by its ID for the authenticated user.
+    /// </summary>
+    /// <param name="id">The unique identifier of the task.</param>
+    /// <param name="request">The update request payload.</param>
+    /// <returns>Result of the update operation.</returns>
+    /// <remarks>
+    /// Route: PUT /tasks/{id}
+    /// Authentication: Required
+    /// </remarks>
     [HttpPut("{id:guid}")]
-    [CustomAuthorize]
     public async Task<IActionResult> UpdateTask(Guid id, [FromBody] UpdateTaskRequest request)
     {
         var user = HttpContext.Items["User"] as User;
@@ -64,8 +111,16 @@ public sealed class TasksController : ControllerBase
         return StatusCode(result.Code, result);
     }
     
+    /// <summary>
+    /// Deletes a specific task by its ID for the authenticated user.
+    /// </summary>
+    /// <param name="id">The unique identifier of the task.</param>
+    /// <returns>Result of the deletion operation.</returns>
+    /// <remarks>
+    /// Route: DELETE /tasks/{id}
+    /// Authentication: Required
+    /// </remarks>
     [HttpDelete("{id:guid}")]
-    [CustomAuthorize]
     public async Task<IActionResult> DeleteTask(Guid id)
     {
         var user = HttpContext.Items["User"] as User;

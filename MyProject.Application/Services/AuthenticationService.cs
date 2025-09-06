@@ -6,6 +6,9 @@ using MyProject.Domain.Interfaces;
 
 namespace MyProject.Application.Services;
 
+/// <summary>
+/// Service for handling user authentication and registration.
+/// </summary>
 public sealed class AuthenticationService : IAuthenticationService
 {
     private readonly IUserRepository _userRepository;
@@ -13,6 +16,13 @@ public sealed class AuthenticationService : IAuthenticationService
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly ILogger<AuthenticationService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthenticationService"/> class.
+    /// </summary>
+    /// <param name="userRepository">The user repository.</param>
+    /// <param name="passwordHasher">The password hasher.</param>
+    /// <param name="jwtTokenGenerator">The JWT token generator.</param>
+    /// <param name="logger">The logger.</param>
     public AuthenticationService(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
@@ -25,9 +35,26 @@ public sealed class AuthenticationService : IAuthenticationService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Registers a new user asynchronously.
+    /// </summary>
+    /// <param name="username">The username.</param>
+    /// <param name="email">The email address.</param>
+    /// <param name="password">The password.</param>
+    /// <returns>A result object containing the JWT token if registration is successful.</returns>
     public async Task<Result<string?>> RegisterAsync(string username, string email, string password)
     {
         _logger.LogInformation("Attempting to register a new user with username {Username}", username);
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            _logger.LogWarning("Registration failed: username is required.");
+            return Result<string?>.Fail("Username is required.");
+        }
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("Registration failed: email is required.");
+            return Result<string?>.Fail("Email is required.");
+        }
         if (await _userRepository.ExistsByUsernameAsync(username))
         {
             _logger.LogWarning("Registration failed for username {Username}: username already exists.", username);
@@ -51,12 +78,18 @@ public sealed class AuthenticationService : IAuthenticationService
             _logger.LogError("Failed to retrieve user {Username} after registration.", username);
             return Result<string?>.Fail("User registration failed.");
         }
-        
+
         var token = _jwtTokenGenerator.GenerateToken(user);
         _logger.LogInformation("User {Username} registered successfully.", user.Username);
-        return new Result<string?>(true, "User registered successfully.", 200, token);
+        return new Result<string?>(true, 200, "User registered successfully.", token);
     }
 
+    /// <summary>
+    /// Authenticates a user asynchronously.
+    /// </summary>
+    /// <param name="identifier">The user's username or email.</param>
+    /// <param name="password">The user's password.</param>
+    /// <returns>A result object containing the JWT token if authentication is successful.</returns>
     public async Task<Result<string?>> AuthenticateAsync(string identifier, string password)
     {
         _logger.LogInformation("Authentication attempt for identifier {Identifier}", identifier);
@@ -82,6 +115,6 @@ public sealed class AuthenticationService : IAuthenticationService
 
         var token = _jwtTokenGenerator.GenerateToken(user);
         _logger.LogInformation("User {Username} authenticated successfully.", user.Username);
-        return new Result<string?>(true, "Authenticating...", 200, token);
+        return new Result<string?>(true, 200, "Authenticating...", token);
     }
 }
