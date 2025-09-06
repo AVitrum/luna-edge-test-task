@@ -28,15 +28,38 @@ public sealed class TasksController : ControllerBase
     /// <param name="request">The task creation request payload.</param>
     /// <returns>Result of the task creation operation.</returns>
     /// <remarks>
-    /// Route: POST /tasks
-    /// Authentication: Required
+    /// Route: POST /tasks<br/>
+    /// Authentication: Required<br/>
+    /// <b>Acceptable variables:</b><br/>
+    /// <ul>
+    ///   <li><b>Title</b> (string, required): Task name.</li>
+    ///   <li><b>Description</b> (string, optional): Task details.</li>
+    ///   <li><b>DueDate</b> (string, optional): Date in <c>yyyy-MM-dd</c> or <c>yyyy-MM-ddTHH:mm:ssZ</c> (ISO 8601). Example: <c>2025-09-06</c> or <c>2025-09-06T12:00:00Z</c>.</li>
+    ///   <li><b>Status</b> (string, optional): <c>Pending</c>, <c>InProgress</c>, <c>Completed</c>. Default: <c>Pending</c>.</li>
+    ///   <li><b>Priority</b> (string, optional): <c>Low</c>, <c>Medium</c>, <c>High</c>. Default: <c>High</c>.</li>
+    /// </ul>
     /// </remarks>
     [HttpPost]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskRequest request)
     {
         var user = HttpContext.Items["User"] as User;
+        DateTime? dueDate = null;
+        if (!string.IsNullOrWhiteSpace(request.DueDate))
+        {
+            var formats = new[] { "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ssZ", "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm:ss.fffZ" };
+            if (!DateTime.TryParseExact(request.DueDate, formats, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var parsedDate))
+            {
+                return BadRequest(new {
+                    Success = false,
+                    Code = 400,
+                    Message = "Invalid dueDate format. Expected format: yyyy-MM-dd or yyyy-MM-ddTHH:mm:ssZ (ISO 8601).",
+                    Data = (object?)null
+                });
+            }
+            dueDate = parsedDate;
+        }
         var result = await _taskService.CreateTaskAsync(
-            user!.Id, request.Title, request.Description, request.DueDate, request.Status, request.Priority);
+            user!.Id, request.Title, request.Description, dueDate, request.Status, request.Priority);
         
         return StatusCode(result.Code, result);
     }
@@ -98,8 +121,16 @@ public sealed class TasksController : ControllerBase
     /// <param name="request">The update request payload.</param>
     /// <returns>Result of the update operation.</returns>
     /// <remarks>
-    /// Route: PUT /tasks/{id}
-    /// Authentication: Required
+    /// Route: PUT /tasks/{id}<br/>
+    /// Authentication: Required<br/>
+    /// <b>Acceptable variables:</b><br/>
+    /// <ul>
+    ///   <li><b>Title</b> (string, optional): New task name.</li>
+    ///   <li><b>Description</b> (string, optional): New task details.</li>
+    ///   <li><b>DueDate</b> (DateTime?, optional): Date in <c>yyyy-MM-dd</c> or <c>yyyy-MM-ddTHH:mm:ssZ</c> (ISO 8601). Example: <c>2025-09-06</c> or <c>2025-09-06T12:00:00Z</c>.</li>
+    ///   <li><b>Status</b> (string, optional): <c>Pending</c>, <c>InProgress</c>, <c>Completed</c>.</li>
+    ///   <li><b>Priority</b> (string, optional): <c>Low</c>, <c>Medium</c>, <c>High</c>.</li>
+    /// </ul>
     /// </remarks>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateTask(Guid id, [FromBody] UpdateTaskRequest request)

@@ -44,16 +44,27 @@ public sealed class TaskService : ITaskService
         _logger.LogInformation("Attempting to create task for user {UserId} with title {Title}", userId, title);
         try
         {
+            if (!Enum.TryParse<TaskStatus>(status, true, out var parsedStatus))
+            {
+                var allowed = string.Join(", ", Enum.GetNames(typeof(TaskStatus)));
+                return new Result<bool>(false, 400, $"Invalid status value. Allowed values: {allowed}.", false);
+            }
+            
+            if (!Enum.TryParse<TaskPriority>(priority, true, out var parsedPriority))
+            {
+                var allowed = string.Join(", ", Enum.GetNames(typeof(TaskPriority)));
+                return new Result<bool>(false, 400, $"Invalid priority value. Allowed values: {allowed}.", false);
+            }
+            
             var newTask = new Task
             {
                 Title = title,
                 Description = description,
                 DueDate = dueDate,
-                Status = Enum.Parse<TaskStatus>(status, true),
-                Priority = Enum.Parse<TaskPriority>(priority, true),
+                Status = parsedStatus,
+                Priority = parsedPriority,
                 UserId = userId
             };
-
             await _taskRepository.AddAsync(newTask);
             await _taskRepository.SaveChangesAsync();
 
@@ -87,15 +98,28 @@ public sealed class TaskService : ITaskService
         _logger.LogInformation("Attempting to retrieve tasks for user {UserId}", userId);
         try
         {
-            Enum.TryParse<TaskStatus>(status, true, out var parsedStatus);
-            var statusFilter = !string.IsNullOrWhiteSpace(status) ? parsedStatus : (TaskStatus?)null;
-
-            Enum.TryParse<TaskPriority>(priority, true, out var parsedPriority);
-            var priorityFilter = !string.IsNullOrWhiteSpace(priority) ? parsedPriority : (TaskPriority?)null;
-
+            TaskStatus? statusFilter = null;
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                if (!Enum.TryParse<TaskStatus>(status, true, out var parsedStatus))
+                {
+                    var allowed = string.Join(", ", Enum.GetNames(typeof(TaskStatus)));
+                    return new Result<GetTasksResponse>(false, 400, $"Invalid status value. Allowed values: {allowed}.", null!);
+                }
+                statusFilter = parsedStatus;
+            }
+            TaskPriority? priorityFilter = null;
+            if (!string.IsNullOrWhiteSpace(priority))
+            {
+                if (!Enum.TryParse<TaskPriority>(priority, true, out var parsedPriority))
+                {
+                    var allowed = string.Join(", ", Enum.GetNames(typeof(TaskPriority)));
+                    return new Result<GetTasksResponse>(false, 400, $"Invalid priority value. Allowed values: {allowed}.", null!);
+                }
+                priorityFilter = parsedPriority;
+            }
             var tasks = (await _taskRepository.GetAllTasksByUserIdAsync(userId, pageNumber, pageSize, dueDate, statusFilter, priorityFilter)).ToList();
             var totalCount = await _taskRepository.GetTotalCountByUserIdAsync(userId, statusFilter, dueDate, priorityFilter);
-
             if (tasks.Count == 0)
             {
                 _logger.LogWarning("No tasks found for user {UserId} with the specified criteria", userId);
@@ -107,7 +131,6 @@ public sealed class TaskService : ITaskService
                     TotalCount = totalCount
                 });
             }
-
             var taskDtos = tasks.Select(t => new TaskDto
             {
                 Id = t.Id,
@@ -119,7 +142,6 @@ public sealed class TaskService : ITaskService
                 CreatedAt = t.CreatedAt,
                 UpdatedAt = t.UpdatedAt!.Value
             }).ToList();
-
             var response = new GetTasksResponse
             {
                 Tasks = taskDtos,
@@ -127,7 +149,6 @@ public sealed class TaskService : ITaskService
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
-
             _logger.LogInformation("Successfully retrieved {TaskCount} tasks for user {UserId}", tasks.Count, userId);
             return new Result<GetTasksResponse>(true, 200, "Tasks retrieved successfully.", response);
         }
@@ -205,13 +226,27 @@ public sealed class TaskService : ITaskService
             _logger.LogWarning("Update failed. Task {TaskId} not found for user {UserId}", id, userId);
             return new Result<bool>(false, 404, "Task not found.", false);
         }
-
         if (!string.IsNullOrWhiteSpace(title)) task.Title = title;
         if (!string.IsNullOrWhiteSpace(description)) task.Description = description;
         if (dueDate.HasValue) task.DueDate = dueDate.Value;
-        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<TaskStatus>(status, true, out var parsedStatus)) task.Status = parsedStatus;
-        if (!string.IsNullOrWhiteSpace(priority) && Enum.TryParse<TaskPriority>(priority, true, out var parsedPriority)) task.Priority = parsedPriority;
-
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<TaskStatus>(status, true, out var parsedStatus))
+            {
+                var allowed = string.Join(", ", Enum.GetNames(typeof(TaskStatus)));
+                return new Result<bool>(false, 400, $"Invalid status value. Allowed values: {allowed}.", false);
+            }
+            task.Status = parsedStatus;
+        }
+        if (!string.IsNullOrWhiteSpace(priority))
+        {
+            if (!Enum.TryParse<TaskPriority>(priority, true, out var parsedPriority))
+            {
+                var allowed = string.Join(", ", Enum.GetNames(typeof(TaskPriority)));
+                return new Result<bool>(false, 400, $"Invalid priority value. Allowed values: {allowed}.", false);
+            }
+            task.Priority = parsedPriority;
+        }
         try
         {
             _taskRepository.Update(task);
